@@ -551,7 +551,7 @@ def run_provider_harness(
             failure=_sanitize_failure(str(error), (arc_binary, fixture_binary)),
         )
         raise HarnessExecutionError(
-            f"provider harness failed; sanitized evidence: {run_directory}"
+            f"provider harness failed ({error}); sanitized evidence: {run_directory}"
         ) from error
 
     if result is None:
@@ -686,7 +686,8 @@ def _require_success(capture: CommandCapture, phase: str) -> None:
     if capture.timed_out:
         raise HarnessExecutionError(f"{phase} exceeded its supervisor timeout")
     if capture.exit_code != 0:
-        raise HarnessExecutionError(f"{phase} exited with code {capture.exit_code}")
+        details = f": {capture.stderr.strip()}" if capture.stderr.strip() else ""
+        raise HarnessExecutionError(f"{phase} exited with code {capture.exit_code}{details}")
 
 
 def _assert_hook_output(
@@ -1001,7 +1002,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             output_root=args.output_root,
         )
     except (HarnessConfigurationError, HarnessExecutionError) as error:
-        print(f"ERROR: {error}", file=sys.stderr)
+        cause = f" ({error.__cause__})" if getattr(error, "__cause__", None) else ""
+        print(f"ERROR: {error}{cause}", file=sys.stderr)
         return 1
     print(f"RUN_DIRECTORY={outcome.run_directory}")
     print(f"CONTRACT_STATUS={outcome.result.contract_status}")

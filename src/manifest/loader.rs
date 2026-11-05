@@ -349,16 +349,28 @@ pub fn get_handle_final_path(file: &std::fs::File) -> Result<PathBuf> {
 
 #[cfg(not(windows))]
 pub fn get_handle_final_path(file: &std::fs::File) -> Result<PathBuf> {
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[cfg(target_os = "linux")]
     {
         use std::os::unix::io::AsRawFd;
         let fd = file.as_raw_fd();
-        let fd_path = if cfg!(target_os = "linux") {
-            format!("/proc/self/fd/{fd}")
-        } else {
-            format!("/dev/fd/{fd}")
-        };
+        let fd_path = format!("/proc/self/fd/{fd}");
         if let Ok(target) = std::fs::read_link(fd_path) {
+            return Ok(target);
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        use std::os::unix::ffi::OsStringExt;
+        use std::os::unix::io::AsRawFd;
+        let fd = file.as_raw_fd();
+        let mut buf = vec![0u8; libc::PATH_MAX as usize];
+        let res = unsafe { libc::fcntl(fd, libc::F_GETPATH, buf.as_mut_ptr() as *mut libc::c_char) };
+        if res != -1 {
+            let len = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+            buf.truncate(len);
+            return Ok(PathBuf::from(std::ffi::OsString::from_vec(buf)));
+        }
+        if let Ok(target) = std::fs::read_link(format!("/dev/fd/{fd}")) {
             return Ok(target);
         }
     }

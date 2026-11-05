@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 function requiredAbsolutePath(name: string, kind: "file" | "directory"): string {
@@ -25,6 +26,16 @@ const terminalEvidence = path.join(outputDirectory, "terminal-attempts.log");
 const tauriDriverPath = process.env.ARC_WEBDRIVER_TAURI_DRIVER;
 process.env.ARC_WEBDRIVER_TERMINAL_EVIDENCE = terminalEvidence;
 
+try {
+  fs.writeFileSync(
+    path.join(os.tmpdir(), "arc-webdriver-terminal-evidence-path.txt"),
+    terminalEvidence,
+    "utf8"
+  );
+} catch {
+  // Best-effort writing to system temp
+}
+
 export const config: WebdriverIO.Config = {
   runner: "local",
   specs: ["./specs/readiness-acl.spec.ts"],
@@ -34,6 +45,14 @@ export const config: WebdriverIO.Config = {
       browserName: "tauri",
       "tauri:options": {
         application: appBinary,
+      },
+      "ms:edgeOptions": {
+        args: [
+          `--terminal-evidence=${terminalEvidence}`,
+          "--remote-allow-origins=*",
+          "--disable-gpu",
+          "--no-sandbox",
+        ],
       },
     },
   ],

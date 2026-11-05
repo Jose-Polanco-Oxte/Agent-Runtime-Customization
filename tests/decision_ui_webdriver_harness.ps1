@@ -196,6 +196,13 @@ if ($buildPassed -and (Test-Path -LiteralPath $Binary -PathType Leaf)) {
     $webdriverProcessesBefore = @(Get-WebDriverProcessIds)
     $webdriver = $null
     $cleanup = $null
+    $terminalEvidencePath = (Join-Path $runDirectory "terminal-attempts.log")
+    $tempEvidenceFile = Join-Path ([System.IO.Path]::GetTempPath()) "arc-webdriver-terminal-evidence-path.txt"
+    try {
+        [System.IO.File]::WriteAllText($tempEvidenceFile, $terminalEvidencePath)
+        [Environment]::SetEnvironmentVariable("ARC_WEBDRIVER_TERMINAL_EVIDENCE", $terminalEvidencePath, "Process")
+        [Environment]::SetEnvironmentVariable("ARC_WEBDRIVER_OUTPUT_DIR", $runDirectory, "Process")
+    } catch {}
     try {
         $webdriver = Invoke-CapturedCommand `
             -FilePath $npmCommand `
@@ -207,12 +214,21 @@ if ($buildPassed -and (Test-Path -LiteralPath $Binary -PathType Leaf)) {
                 ARC_WEBDRIVER_BINARY = $resolvedBinary
                 ARC_WEBDRIVER_OUTPUT_DIR = $runDirectory
                 ARC_WEBDRIVER_TAURI_DRIVER = $tauriDriverCommand
-                ARC_WEBDRIVER_TERMINAL_EVIDENCE = (Join-Path $runDirectory "terminal-attempts.log")
+                ARC_WEBDRIVER_TERMINAL_EVIDENCE = $terminalEvidencePath
                 ARC_DECISION_UI_UDF_ROOT = (Join-Path $runDirectory "udf")
             }
     }
     finally {
         $cleanup = Stop-NewWebDriverProcesses -BaselineProcessIds $webdriverProcessesBefore
+        try {
+            if (Test-Path -LiteralPath $tempEvidenceFile) {
+                Remove-Item -Force -LiteralPath $tempEvidenceFile -ErrorAction SilentlyContinue
+            }
+            $crashLog = Join-Path ([System.IO.Path]::GetTempPath()) "arc-webdriver-fixture-crash.log"
+            if (Test-Path -LiteralPath $crashLog) {
+                Copy-Item -LiteralPath $crashLog -Destination (Join-Path $runDirectory "arc-webdriver-fixture-crash.log") -Force -ErrorAction SilentlyContinue
+            }
+        } catch {}
     }
     if ($null -eq $webdriver) {
         throw "WebDriver command did not produce a process result"
