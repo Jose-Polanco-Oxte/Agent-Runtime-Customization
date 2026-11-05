@@ -1,0 +1,39 @@
+schema: '1.0'
+
+matchers:
+  terraform.destroy.production:
+    default:
+      regex: '(?i)terraform(?:\.exe)?\s+destroy\b.*(prod|production)'
+
+  kubernetes.namespace.delete:
+    default:
+      regex: '(?i)kubectl(?:\.exe)?\s+delete\s+(namespace|ns)\b'
+
+  terraform.apply.production:
+    default:
+      regex: '(?i)terraform(?:\.exe)?\s+apply\b.*(prod|production)'
+
+operations:
+  policy.constant:
+    default: 'git rev-parse --is-inside-work-tree'
+
+  infrastructure.context.current:
+    windows: 'powershell -NoProfile -Command "Get-Content -Raw -LiteralPath ''.sandbox-state/context.txt''"'
+    linux: 'sh -c "cat .sandbox-state/context.txt"'
+    macos: 'sh -c "cat .sandbox-state/context.txt"'
+    default:
+      set: windows
+
+  infrastructure.change.window.state:
+    windows: 'powershell -NoProfile -Command "if (Test-Path -LiteralPath ''.sandbox-state/change-window.txt'') { ''open'' } else { ''closed'' }"'
+    linux: 'sh -c "if [ -f .sandbox-state/change-window.txt ]; then echo open; else echo closed; fi"'
+    macos: 'sh -c "if [ -f .sandbox-state/change-window.txt ]; then echo open; else echo closed; fi"'
+    default:
+      set: windows
+
+  infrastructure.plan.evidence.state:
+    windows: 'powershell -NoProfile -Command "if (Test-Path -LiteralPath ''.sandbox-state/plan-evidence.txt'') { ''present'' } else { ''missing'' }"'
+    linux: 'sh -c "if [ -f .sandbox-state/plan-evidence.txt ]; then echo present; else echo missing; fi"'
+    macos: 'sh -c "if [ -f .sandbox-state/plan-evidence.txt ]; then echo present; else echo missing; fi"'
+    default:
+      set: windows

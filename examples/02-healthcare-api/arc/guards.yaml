@@ -1,0 +1,58 @@
+schema: '1.0'
+
+guards:
+  lifecycle:
+    privacy_context_advisory:
+      trigger: start
+      require:
+        rule: privacy.notice.present
+      on_failure:
+        action: message
+        feedback: |
+          Privacy context is missing. Treat all clinical records as restricted
+          and restore .sandbox-state/privacy-notice.txt before data work.
+      order: 10
+
+    retain_session_audit:
+      trigger: end
+      require:
+        rule: audit.evidence.present
+      on_failure:
+        action: deny
+        feedback: |
+          Completion is blocked until a metadata-only session audit record exists.
+      order: 90
+
+  tools:
+    block_phi_export:
+      matches:
+        alias: clinical.phi.export
+      require:
+        rule: policy.never
+      on_failure:
+        action: deny
+        feedback: |
+          Bulk patient-data export is not permitted in this project.
+      order: 5
+
+    preserve_audit_logs:
+      matches:
+        alias: clinical.audit.destroy
+      require:
+        rule: policy.never
+      on_failure:
+        action: deny
+        feedback: |
+          Clinical audit evidence is immutable and cannot be deleted or truncated.
+      order: 6
+
+    authorize_schema_migration:
+      matches:
+        alias: clinical.production.migrate
+      require:
+        rule: migration.authorized
+      on_failure:
+        action: deny
+        feedback: |
+          The clinical production migration is missing reviewed evidence or authorization.
+      order: 20

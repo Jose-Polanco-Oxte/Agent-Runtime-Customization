@@ -1,0 +1,46 @@
+schema: '1.0'
+
+matchers:
+  dataset.recursive.delete:
+    default:
+      regex: '(?i)(rm\s+(-r|-rf|-fr)|remove-item\b.*-recurse|rmdir\b.*(/s|-r))\b.*(datasets|data[/\\]raw)'
+
+  model.registry.upload:
+    default:
+      regex: '(?i)(aws\s+s3\s+cp|gsutil\s+cp|huggingface-cli\s+upload|mlflow\s+artifacts\s+log-artifact)\b.*(model|checkpoint)'
+
+  environment.dependency.mutate:
+    default:
+      regex: '(?i)(pip\s+install|poetry\s+add|uv\s+add|conda\s+install)\b'
+
+operations:
+  policy.constant:
+    default: 'git rev-parse --is-inside-work-tree'
+
+  dataset.manifest.state:
+    windows: 'powershell -NoProfile -Command "if (Test-Path -LiteralPath ''.sandbox-state/dataset-manifest.txt'') { ''present'' } else { ''missing'' }"'
+    linux: 'sh -c "if [ -f .sandbox-state/dataset-manifest.txt ]; then echo present; else echo missing; fi"'
+    macos: 'sh -c "if [ -f .sandbox-state/dataset-manifest.txt ]; then echo present; else echo missing; fi"'
+    default:
+      set: windows
+
+  lineage.evidence.state:
+    windows: 'powershell -NoProfile -Command "if (Test-Path -LiteralPath ''.sandbox-state/lineage-evidence.txt'') { ''present'' } else { ''missing'' }"'
+    linux: 'sh -c "if [ -f .sandbox-state/lineage-evidence.txt ]; then echo present; else echo missing; fi"'
+    macos: 'sh -c "if [ -f .sandbox-state/lineage-evidence.txt ]; then echo present; else echo missing; fi"'
+    default:
+      set: windows
+
+  model.review.state:
+    windows: 'powershell -NoProfile -Command "if (Test-Path -LiteralPath ''.sandbox-state/model-review.txt'') { ''present'' } else { ''missing'' }"'
+    linux: 'sh -c "if [ -f .sandbox-state/model-review.txt ]; then echo present; else echo missing; fi"'
+    macos: 'sh -c "if [ -f .sandbox-state/model-review.txt ]; then echo present; else echo missing; fi"'
+    default:
+      set: windows
+
+  dependency.lock.state:
+    windows: 'powershell -NoProfile -Command "(Get-Content -Raw -LiteralPath ''.sandbox-state/lock-state.txt'').Trim()"'
+    linux: 'sh -c "tr -d ''\r\n'' < .sandbox-state/lock-state.txt"'
+    macos: 'sh -c "tr -d ''\r\n'' < .sandbox-state/lock-state.txt"'
+    default:
+      set: windows

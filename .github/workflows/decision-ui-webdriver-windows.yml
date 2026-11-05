@@ -1,0 +1,61 @@
+name: Decision UI WebDriver Windows
+
+on:
+  push:
+    paths:
+      - ".github/workflows/decision-ui-webdriver-windows.yml"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "ui/decision/**"
+      - "tests/decision_ui_webdriver_harness.ps1"
+  pull_request:
+    paths:
+      - ".github/workflows/decision-ui-webdriver-windows.yml"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "ui/decision/**"
+      - "tests/decision_ui_webdriver_harness.ps1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  webdriver:
+    name: Readiness and ACL
+    runs-on: windows-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Select stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: ui/decision/package-lock.json
+
+      - name: Install frontend and WebDriver dependencies
+        working-directory: ui/decision
+        run: npm ci --ignore-scripts
+
+      - name: Install pinned tauri-driver
+        run: cargo install tauri-driver --version 2.0.6 --locked
+
+      - name: Run Tauri WebDriver integration suite
+        shell: pwsh
+        run: ./tests/decision_ui_webdriver_harness.ps1 -OutputRoot webdriver-artifacts
+
+      - name: Upload WebDriver evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: decision-ui-webdriver-windows
+          path: webdriver-artifacts
+          if-no-files-found: error
+          retention-days: 14

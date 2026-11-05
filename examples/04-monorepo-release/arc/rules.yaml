@@ -1,0 +1,49 @@
+schema: '1.0'
+
+rules:
+  policy.never:
+    probe:
+      use:
+        alias: policy.constant
+      in:
+        - allow
+
+  repository.branch.protected:
+    probe:
+      use:
+        alias: repository.branch.current
+      in:
+        - main
+        - master
+        - stable
+
+  repository.state.clean:
+    probe:
+      use:
+        alias: repository.state.current
+      in:
+        - clean
+
+  release.evidence.present:
+    probe:
+      use:
+        alias: release.evidence.state
+      in:
+        - present
+
+  force.push.authorized:
+    all:
+      - not:
+          rule: repository.branch.protected
+      - decide:
+          prompt: |
+            Did the user explicitly authorize force-pushing this exact release
+            branch after reviewing the commits that will be replaced?
+
+  package.publish.authorized:
+    all:
+      - rule: release.evidence.present
+      - decide:
+          prompt: |
+            Did the user explicitly authorize publishing this exact package and
+            immutable version to the named registry?

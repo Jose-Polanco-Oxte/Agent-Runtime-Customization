@@ -1,0 +1,81 @@
+schema: '1.0'
+
+root:
+  workdir: 'arc'
+  instructions: 'instructions.md'
+
+runtime:
+  decision_timeout_seconds: 150
+
+skills:
+  ml_workflows:
+    description: 'Safe data and model lifecycle procedures'
+    members:
+      data_validation:
+        description: 'Validate dataset lineage and schema without destructive cleanup'
+        src: 'skills/data-validation'
+      model_release:
+        description: 'Review model artifacts before registry upload'
+        src: 'skills/model-release'
+
+roles:
+  data_steward:
+    description: 'Owns dataset lineage, retention, and approved movement'
+    src: 'roles/data-steward.md'
+
+guards:
+  lifecycle:
+    dataset_manifest_advisory:
+      trigger: start
+      require:
+        rule: dataset.manifest.present
+      on_failure:
+        action: message
+        feedback: |
+          The dataset manifest is missing. Do not train, transform, or upload
+          data until lineage is restored.
+      order: 10
+
+    require_lineage_evidence:
+      trigger: end
+      require:
+        rule: lineage.evidence.present
+      on_failure:
+        action: deny
+        feedback: |
+          Completion requires .sandbox-state/lineage-evidence.txt.
+      order: 90
+
+  tools:
+    preserve_source_datasets:
+      matches:
+        alias: dataset.recursive.delete
+      require:
+        rule: policy.never
+      on_failure:
+        action: deny
+        feedback: |
+          Recursive deletion of source datasets is prohibited.
+      order: 5
+
+    authorize_model_upload:
+      matches:
+        alias: model.registry.upload
+      require:
+        rule: model.upload.authorized
+      on_failure:
+        action: deny
+        feedback: |
+          Model upload lacks review evidence or exact authorization.
+      order: 15
+
+    confirm_dependency_mutation:
+      matches:
+        alias: environment.dependency.mutate
+      require:
+        rule: dependency.lock.synchronized
+      on_failure:
+        action: ask
+        feedback: |
+          The lock-state marker is stale. Approve this exact dependency mutation?
+      order: 20

@@ -1,0 +1,30 @@
+schema: '1.0'
+
+rules:
+  policy.never:
+    probe:
+      use:
+        alias: policy.constant
+      in:
+        - allow
+
+  infrastructure.context.production:
+    probe:
+      use:
+        alias: infrastructure.context.current
+      in:
+        - production
+
+  infrastructure.change.window.open:
+    probe:
+      use:
+        alias: infrastructure.change.window.state
+      in:
+        - open
+
+  infrastructure.plan.evidence.present:
+    probe:
+      use:
+        alias: infrastructure.plan.evidence.state
+      in:
+        - present

@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "decision-window",
+  "description": "Arc's one-shot decision window uses only application-owned commands.",
+  "windows": ["decision"],
+  "permissions": [
+    "allow-get-decision-request",
+    "allow-frontend-ready",
+    "allow-frontend-failed",
+    "allow-submit-decision",
+    "allow-dismiss-decision"
+  ]
+}

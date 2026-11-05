@@ -1,0 +1,10 @@
+/target
+/tests/e2e/logs
+/docs/internal/
+/target-audit/
+/target-audit-gea-v2/
+/.arc/
+.harness*
+/ui/decision/node_modules/
+/ui/decision/dist/
+/ui/decision/src-tauri/gen/schemas/

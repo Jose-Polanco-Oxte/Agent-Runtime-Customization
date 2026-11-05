@@ -1,0 +1,21 @@
+schema: '1.0'
+
+root:
+  workdir: 'arc'
+  instructions: 'instructions.md'
+
+runtime:
+  decision_timeout_seconds: 120
+
+modules:
+  guards: 'guards.yaml'
+
+skills:
+  release_review:
+    description: 'Review release inputs, versioning, and provenance'
+    src: 'skills/release-review'
+
+roles:
+  release_manager:
+    description: 'Coordinates a reversible, provenance-preserving release'
+    src: 'roles/release-manager.md'

@@ -1,0 +1,46 @@
+[package]
+name = "arc-decision-ui-host"
+version = "1.0.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[lib]
+name = "arc_decision_ui_host"
+path = "src/lib.rs"
+
+[[bin]]
+name = "arc-decision-ui-host"
+path = "src/main.rs"
+
+[[bin]]
+name = "arc-decision-ui-webdriver-fixture"
+path = "src/bin/webdriver_fixture.rs"
+required-features = ["webdriver-fixture"]
+
+[features]
+# Development builds use the Vite dev server unless the workspace build
+# scripts explicitly opt into the embedded production protocol.
+custom-protocol = ["tauri/custom-protocol"]
+# Builds a deterministic, non-shipping host with a second window that has no
+# decision capability. Production binaries never enable this feature.
+webdriver-fixture = []
+# Enables the opt-in frontend failure seam used by the live/process matrix.
+# Shipping binaries must not enable this feature.
+frontend-failure-seam = []
+
+[build-dependencies]
+tauri-build = "=2.6.3"
+
+[dependencies]
+anyhow = "1.0"
+arc = { path = "../../.." }
+dark-light = "2.0.0"
+log = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+tauri = "=2.11.5"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

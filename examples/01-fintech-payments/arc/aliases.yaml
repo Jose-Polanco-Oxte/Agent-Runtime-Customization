@@ -1,0 +1,39 @@
+schema: '1.0'
+
+matchers:
+  payment.secret.read:
+    default:
+      regex:
+        - '(?i)(type|cat|get-content|more)\s+.*(\.env\.production|payment-secrets\.json)'
+        - '(?i)(echo|printenv|env)\b.*(STRIPE|PAYMENT|CARD|TOKEN|SECRET)'
+
+  payment.production.mutate:
+    default:
+      regex:
+        - '(?i)(psql|mysql|sqlcmd)\b.*\b(update|delete|truncate)\b.*payments'
+        - '(?i)payment-admin\b.*\b(refund|capture|void)\b.*--environment[= ]production'
+
+  payment.production.deploy:
+    default:
+      regex: '(?i)(deploy|release)\b.*\b(payment|payments)\b.*\b(prod|production)\b'
+
+operations:
+  policy.constant:
+    default: 'git rev-parse --is-inside-work-tree'
+
+  git.branch.current:
+    default: 'git branch --show-current'
+
+  change.ticket.state:
+    windows: 'powershell -NoProfile -Command "if (Test-Path -LiteralPath ''.sandbox-state/change-ticket.txt'') { ''present'' } else { ''missing'' }"'
+    linux: 'sh -c "if [ -f .sandbox-state/change-ticket.txt ]; then echo present; else echo missing; fi"'
+    macos: 'sh -c "if [ -f .sandbox-state/change-ticket.txt ]; then echo present; else echo missing; fi"'
+    default:
+      set: windows
+
+  release.evidence.state:
+    windows: 'powershell -NoProfile -Command "if (Test-Path -LiteralPath ''.sandbox-state/release-evidence.txt'') { ''present'' } else { ''missing'' }"'
+    linux: 'sh -c "if [ -f .sandbox-state/release-evidence.txt ]; then echo present; else echo missing; fi"'
+    macos: 'sh -c "if [ -f .sandbox-state/release-evidence.txt ]; then echo present; else echo missing; fi"'
+    default:
+      set: windows

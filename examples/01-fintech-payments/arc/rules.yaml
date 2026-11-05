@@ -1,0 +1,40 @@
+schema: '1.0'
+
+rules:
+  policy.never:
+    probe:
+      use:
+        alias: policy.constant
+      in:
+        - allow
+
+  repo.branch.protected:
+    probe:
+      use:
+        alias: git.branch.current
+      in:
+        - main
+        - master
+        - production
+
+  change.ticket.present:
+    probe:
+      use:
+        alias: change.ticket.state
+      in:
+        - present
+
+  release.evidence.present:
+    probe:
+      use:
+        alias: release.evidence.state
+      in:
+        - present
+
+  payment.mutation.authorized:
+    all:
+      - rule: change.ticket.present
+      - decide:
+          prompt: |
+            Did the user explicitly authorize this exact production payment
+            mutation and identify its rollback plan?

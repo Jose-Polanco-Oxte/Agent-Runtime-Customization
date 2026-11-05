@@ -1,0 +1,43 @@
+schema: '1.0'
+
+matchers:
+  clinical.phi.export:
+    default:
+      regex:
+        - '(?i)(type|cat|get-content)\s+.*(patients|clinical-records|phi).*(csv|json)'
+        - '(?i)(curl|scp|copy-item|aws\s+s3\s+cp)\b.*(patients|clinical-records|phi)'
+
+  clinical.audit.destroy:
+    default:
+      regex:
+        - '(?i)(rm|del|erase|remove-item)\b.*(audit|access-log)'
+        - '(?i)(truncate|delete\s+from)\b.*(audit|access_log)'
+
+  clinical.production.migrate:
+    default:
+      regex: '(?i)(alembic|flyway|liquibase|prisma)\b.*(upgrade|migrate|deploy)\b.*(prod|production)'
+
+operations:
+  policy.constant:
+    default: 'git rev-parse --is-inside-work-tree'
+
+  privacy.notice.state:
+    windows: 'powershell -NoProfile -Command "if (Test-Path -LiteralPath ''.sandbox-state/privacy-notice.txt'') { ''present'' } else { ''missing'' }"'
+    linux: 'sh -c "if [ -f .sandbox-state/privacy-notice.txt ]; then echo present; else echo missing; fi"'
+    macos: 'sh -c "if [ -f .sandbox-state/privacy-notice.txt ]; then echo present; else echo missing; fi"'
+    default:
+      set: windows
+
+  audit.evidence.state:
+    windows: 'powershell -NoProfile -Command "if (Test-Path -LiteralPath ''.sandbox-state/session-audit.txt'') { ''present'' } else { ''missing'' }"'
+    linux: 'sh -c "if [ -f .sandbox-state/session-audit.txt ]; then echo present; else echo missing; fi"'
+    macos: 'sh -c "if [ -f .sandbox-state/session-audit.txt ]; then echo present; else echo missing; fi"'
+    default:
+      set: windows
+
+  migration.review.state:
+    windows: 'powershell -NoProfile -Command "if (Test-Path -LiteralPath ''.sandbox-state/migration-review.txt'') { ''present'' } else { ''missing'' }"'
+    linux: 'sh -c "if [ -f .sandbox-state/migration-review.txt ]; then echo present; else echo missing; fi"'
+    macos: 'sh -c "if [ -f .sandbox-state/migration-review.txt ]; then echo present; else echo missing; fi"'
+    default:
+      set: windows

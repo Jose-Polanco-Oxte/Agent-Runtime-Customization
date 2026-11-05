@@ -1,0 +1,205 @@
+{
+  "_comment": "Harness configuration for this project. The scripts in .claude/scripts and .claude/hooks read it. Without this file the guard restricts nothing and the verifier fails. Patterns accept {harness} (state root) and {tests} (test file patterns). max_lines and max_chars are hard budgets enforced by verify.py. Deliverables with format json are minified JSON, used to communicate between agents.",
+  "harness": ".harness-v1-release-pipeline",
+  "max_cycles": 4,
+  "iteration": {
+    "max_parallel_items": 7,
+    "require_user_approval": true
+  },
+  "git": {
+    "enabled": false,
+    "branch_prefix": "req/",
+    "commit_format": "conventional",
+    "open_pr_on_approved_review": true
+  },
+  "limits": {
+    "error_lines": 10
+  },
+  "commands": {
+    "tests": "cargo test --workspace --locked && npm --prefix ui/decision run test && python -m unittest discover -s tests/provider_e2e -p \"test_*.py\"",
+    "lint": "cargo clippy --workspace --lib --bins --locked --offline -- --force-warn dead_code --force-warn unused_imports --force-warn unused_variables --force-warn unreachable_pub && npm --prefix ui/decision run check:audit",
+    "build": "cargo check --workspace --all-targets --locked --offline && cargo check --workspace --all-targets --all-features --locked --offline && npm --prefix ui/decision run build"
+  },
+  "tests": ["tests/*.rs", "tests/provider_e2e/test_*.py", "ui/decision/src/**/*.test.ts", "ui/decision/webdriver/specs/*.spec.ts", "tests/fixtures/*.json"],
+  "permissions": {
+    "orchestrator": {
+      "allow": ["{harness}/**"],
+      "deny": []
+    },
+    "analyst": {
+      "allow": ["{harness}/project/dod.md"],
+      "deny": []
+    },
+    "architect": {
+      "allow": ["{harness}/project/arch.md", "{harness}/project/decisions/**"],
+      "deny": []
+    },
+    "planner": {
+      "allow": ["{harness}/items/*/plan.md"],
+      "deny": []
+    },
+    "test-designer": {
+      "allow": ["{harness}/items/*/test-plan/cases.md", "{tests}"],
+      "deny": []
+    },
+    "test-auditor": {
+      "allow": ["{harness}/items/*/test-plan/audit.json"],
+      "deny": []
+    },
+    "implementation-lead": {
+      "allow": [
+        "{harness}/items/*/backlog.md",
+        "{harness}/items/*/handoffs/**",
+        "{harness}/items/*/escalations/**"
+      ],
+      "deny": []
+    },
+    "implementer": {
+      "allow": ["**"],
+      "deny": [
+        "{tests}",
+        "{harness}/project/**",
+        "{harness}/log/**",
+        "{harness}/state.json",
+        "{harness}/items/*/test-plan/**",
+        "{harness}/items/*/reviews/**",
+        "{harness}/items/*/backlog.md",
+        "{harness}/items/*/plan.md",
+        ".claude/**"
+      ]
+    },
+    "code-reviewer": {
+      "allow": ["{harness}/items/*/reviews/**"],
+      "deny": []
+    },
+    "explorer": {
+      "allow": [],
+      "deny": ["**"]
+    }
+  },
+  "bash": {
+    "readonly": [
+      "git status",
+      "git diff",
+      "git log",
+      "git show",
+      "git rev-parse"
+    ],
+    "env_allow": [
+      "RUST_BACKTRACE",
+      "RUST_LOG",
+      "CARGO_TERM_COLOR",
+      "NO_COLOR",
+      "CI",
+      "PYTHONDONTWRITEBYTECODE"
+    ],
+    "roles": {
+      "orchestrator": {
+        "verify": ["*"],
+        "commands": false
+      },
+      "implementation-lead": {
+        "verify": ["deliverable", "record"],
+        "commands": false
+      },
+      "test-designer": {
+        "verify": ["record"],
+        "commands": true
+      },
+      "test-auditor": {
+        "verify": ["record"],
+        "commands": true
+      },
+      "implementer": {
+        "verify": ["record"],
+        "commands": true
+      },
+      "code-reviewer": {
+        "verify": ["record"],
+        "commands": true
+      }
+    }
+  },
+  "deliverables": {
+    "dod": {
+      "max_lines": 150,
+      "sections": [
+        "## Requirements",
+        "## Acceptance criteria",
+        "## Open questions"
+      ]
+    },
+    "arch": {
+      "max_lines": 150,
+      "sections": ["## Decisions in force", "## Change log"]
+    },
+    "plan": {
+      "max_lines": 80,
+      "sections": ["## Scope", "## Tasks", "## Ambiguities"]
+    },
+    "cases": {
+      "max_lines": 150,
+      "sections": ["## Cases", "## Red phase"]
+    },
+    "audit": {
+      "format": "json",
+      "max_chars": 2500,
+      "keys": ["v", "trace", "red", "fix", "esc"],
+      "enums": { "v": ["APPROVED", "REJECTED"] },
+      "lists": ["trace", "red", "fix", "esc"]
+    },
+    "report": {
+      "format": "json",
+      "max_chars": 3000,
+      "keys": ["slice", "st", "red", "green", "chg", "miss", "deps", "sugg"],
+      "optional": ["tprob", "resp"],
+      "enums": {
+        "st": [
+          "COMPLETED",
+          "PARTIAL",
+          "BLOCKED (design)",
+          "BLOCKED (tests)",
+          "BLOCKED (environment)"
+        ]
+      },
+      "lists": ["chg", "miss", "deps", "sugg"]
+    },
+    "review": {
+      "format": "json",
+      "max_chars": 4500,
+      "keys": ["v", "acs", "find", "dyn", "notver"],
+      "optional": ["vr", "miss", "weak"],
+      "enums": {
+        "v": [
+          "APPROVED",
+          "CHANGES REQUIRED (code)",
+          "CHANGES REQUIRED (design)",
+          "INSUFFICIENT TEST CASES"
+        ]
+      },
+      "lists": ["acs", "find", "dyn", "notver", "vr", "miss", "weak"]
+    },
+    "backlog": {
+      "max_lines": 40,
+      "sections": ["## Slices"]
+    },
+    "explore": {
+      "format": "json",
+      "max_chars": 3000,
+      "keys": ["cmd", "globs"],
+      "optional": ["notes"],
+      "lists": ["cmd", "globs", "notes"]
+    }
+  },
+  "dod_states": [
+    "pending",
+    "test_design",
+    "tests_audited",
+    "in_implementation",
+    "in_review",
+    "verified",
+    "done"
+  ],
+  "states_with_evidence": ["verified", "done"],
+  "done_evidence_contains": "review"
+}

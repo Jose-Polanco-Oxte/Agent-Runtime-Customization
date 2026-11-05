@@ -1,0 +1,82 @@
+schema: '1.0'
+
+root:
+  workdir: 'arc'
+  instructions: 'instructions.md'
+
+runtime:
+  decision_timeout_seconds: 120
+
+skills:
+  payments:
+    description: 'Payment-service operating procedures'
+    members:
+      change_control:
+        description: 'Validate evidence before production payment changes'
+        src: 'skills/change-control'
+      secret_handling:
+        description: 'Handle payment credentials without disclosure'
+        src: 'skills/secret-handling'
+
+roles:
+  payment_release_manager:
+    description: 'Owns payment release safety and auditability'
+    src: 'roles/payment-release-manager.md'
+
+guards:
+  lifecycle:
+    protected_branch_advisory:
+      trigger: start
+      require:
+        not:
+          rule: repo.branch.protected
+      on_failure:
+        action: message
+        feedback: |
+          The session started on a protected branch. Do not modify payment code
+          until work is moved to a feature branch.
+      order: 10
+
+    require_release_evidence:
+      trigger: end
+      require:
+        rule: release.evidence.present
+      on_failure:
+        action: deny
+        feedback: |
+          Completion is blocked until .sandbox-state/release-evidence.txt exists.
+      order: 90
+
+  tools:
+    block_payment_secret_disclosure:
+      matches:
+        alias: payment.secret.read
+      require:
+        rule: policy.never
+      on_failure:
+        action: deny
+        feedback: |
+          Reading or printing production payment secrets is prohibited.
+      order: 5
+
+    authorize_production_mutation:
+      matches:
+        alias: payment.production.mutate
+      require:
+        rule: payment.mutation.authorized
+      on_failure:
+        action: deny
+        feedback: |
+          The production mutation lacks a change ticket and explicit authorization.
+      order: 15
+
+    confirm_production_deploy:
+      matches:
+        alias: payment.production.deploy
+      require:
+        rule: release.evidence.present
+      on_failure:
+        action: ask
+        feedback: |
+          Release evidence is missing. Approve this exact production deployment?
+      order: 20

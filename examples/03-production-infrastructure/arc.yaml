@@ -1,0 +1,77 @@
+schema: '1.0'
+
+root:
+  workdir: 'arc'
+  instructions: 'instructions.md'
+
+runtime:
+  decision_timeout_seconds: 120
+
+skills:
+  infrastructure_plan_review:
+    description: 'Review infrastructure plans without mutating production'
+    src: 'skills/plan-review'
+
+roles:
+  production_sre:
+    description: 'Maintains production infrastructure with reversible, audited changes'
+    src: 'roles/production-sre.md'
+
+guards:
+  lifecycle:
+    production_context_advisory:
+      trigger: start
+      require:
+        not:
+          rule: infrastructure.context.production
+      on_failure:
+        action: message
+        feedback: |
+          The selected synthetic context is production. Begin with read-only
+          inspection and do not infer change authorization.
+      order: 10
+
+    require_plan_evidence:
+      trigger: end
+      require:
+        rule: infrastructure.plan.evidence.present
+      on_failure:
+        action: deny
+        feedback: |
+          Completion requires .sandbox-state/plan-evidence.txt.
+      order: 90
+
+  tools:
+    block_terraform_destroy:
+      matches:
+        alias: terraform.destroy.production
+      require:
+        rule: policy.never
+      on_failure:
+        action: deny
+        feedback: |
+          Terraform destroy against production is prohibited.
+      order: 5
+
+    block_namespace_deletion:
+      matches:
+        alias: kubernetes.namespace.delete
+      require:
+        rule: policy.never
+      on_failure:
+        action: deny
+        feedback: |
+          Namespace deletion is prohibited; use a reviewed resource-level plan.
+      order: 6
+
+    approve_production_apply:
+      matches:
+        alias: terraform.apply.production
+      require:
+        rule: infrastructure.change.window.open
+      on_failure:
+        action: ask
+        feedback: |
+          No open change-window marker exists. Approve this exact apply as a
+          synthetic break-glass test?
+      order: 20

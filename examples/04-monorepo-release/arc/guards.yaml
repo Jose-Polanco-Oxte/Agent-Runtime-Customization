@@ -1,0 +1,60 @@
+schema: '1.0'
+
+guards:
+  lifecycle:
+    protected_branch_advisory:
+      trigger: start
+      require:
+        not:
+          rule: repository.branch.protected
+      on_failure:
+        action: message
+        feedback: |
+          The sandbox branch marker is protected. Release work must use a
+          release branch and preserve protected history.
+      order: 10
+
+    require_clean_completion:
+      trigger: end
+      require:
+        rule: repository.state.clean
+      on_failure:
+        action: deny
+        feedback: |
+          Completion is blocked while .sandbox-state/worktree.txt is not clean.
+      order: 90
+
+  tools:
+    protect_force_push:
+      matches:
+        alias: git.push.force
+      require:
+        rule: force.push.authorized
+      on_failure:
+        action: deny
+        feedback: |
+          Force push is blocked on protected branches and requires exact
+          authorization on a release branch.
+      order: 5
+
+    protect_release_tags:
+      matches:
+        alias: git.tag.delete
+      require:
+        rule: policy.never
+      on_failure:
+        action: deny
+        feedback: |
+          Deleting local or remote release tags is prohibited.
+      order: 6
+
+    authorize_package_publish:
+      matches:
+        alias: package.publish
+      require:
+        rule: package.publish.authorized
+      on_failure:
+        action: deny
+        feedback: |
+          Package publication lacks release evidence or exact authorization.
+      order: 20

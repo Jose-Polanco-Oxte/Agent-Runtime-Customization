@@ -1,0 +1,13 @@
+schema: '1.0'
+
+root:
+  workdir: 'arc'
+  instructions: 'instructions.md'
+
+runtime:
+  decision_timeout_seconds: 180
+
+modules:
+  skills: 'skills.yaml'
+  roles: 'roles.yaml'
+  guards: 'guards.yaml'

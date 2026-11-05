@@ -1,0 +1,70 @@
+name: Provider contract cross-platform
+
+on:
+  push:
+    paths:
+      - ".github/workflows/provider-e2e-cross-platform.yml"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "examples/provider_decision_host.rs"
+      - "src/**"
+      - "tests/provider_e2e/**"
+  pull_request:
+    paths:
+      - ".github/workflows/provider-e2e-cross-platform.yml"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "examples/provider_decision_host.rs"
+      - "src/**"
+      - "tests/provider_e2e/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  provider-contract:
+    name: Contract (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+          - macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Select stable Rust
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Build Arc and scripted decision sidecar
+        run: cargo build --locked --bin arc --example provider_decision_host
+
+      - name: Run provider evidence contract tests
+        run: python -m unittest discover -s tests/provider_e2e -p "test_*.py" -v
+
+      - name: Run Codex and Gemini contract matrix
+        run: |
+          python tests/provider_e2e/provider_runner.py --mode contract --provider codex --decision allow --output-root provider-e2e-artifacts
+          python tests/provider_e2e/provider_runner.py --mode contract --provider codex --decision deny --output-root provider-e2e-artifacts
+          python tests/provider_e2e/provider_runner.py --mode contract --provider gemini --decision allow --output-root provider-e2e-artifacts
+          python tests/provider_e2e/provider_runner.py --mode contract --provider gemini --decision deny --output-root provider-e2e-artifacts
+
+      - name: Upload sanitized evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: provider-contract-${{ matrix.os }}
+          path: provider-e2e-artifacts
+          if-no-files-found: error
+          retention-days: 14

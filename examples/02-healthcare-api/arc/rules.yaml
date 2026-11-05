@@ -1,0 +1,38 @@
+schema: '1.0'
+
+rules:
+  policy.never:
+    probe:
+      use:
+        alias: policy.constant
+      in:
+        - allow
+
+  privacy.notice.present:
+    probe:
+      use:
+        alias: privacy.notice.state
+      in:
+        - present
+
+  audit.evidence.present:
+    probe:
+      use:
+        alias: audit.evidence.state
+      in:
+        - present
+
+  migration.review.present:
+    probe:
+      use:
+        alias: migration.review.state
+      in:
+        - present
+
+  migration.authorized:
+    all:
+      - rule: migration.review.present
+      - decide:
+          prompt: |
+            Did the user explicitly authorize this exact clinical production
+            migration and provide a concrete rollback step?

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Arc Decision UI",
+  "version": "1.0.0",
+  "identifier": "dev.arc.decision-ui",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "decision",
+        "create": false,
+        "url": "index.html",
+        "title": "Arc — Decision required",
+        "width": 580,
+        "height": 620,
+        "minWidth": 420,
+        "minHeight": 360,
+        "maxWidth": 860,
+        "maxHeight": 920,
+        "center": true,
+        "resizable": true,
+        "maximizable": false,
+        "minimizable": false,
+        "alwaysOnTop": true,
+        "focus": false,
+        "visible": false,
+        "preventOverflow": true,
+        "useHttpsScheme": false,
+        "transparent": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' data:; style-src 'self'; script-src 'self'",
+      "devCsp": "default-src 'self' http://127.0.0.1:5173; connect-src ipc: http://ipc.localhost http://127.0.0.1:5173 ws://127.0.0.1:5173; img-src 'self' data: http://127.0.0.1:5173; style-src 'self' 'unsafe-inline' http://127.0.0.1:5173; script-src 'self' 'unsafe-eval' http://127.0.0.1:5173",
+      "freezePrototype": true,
+      "capabilities": ["decision-window"]
+    }
+  },
+  "bundle": {
+    "active": false
+  }
+}

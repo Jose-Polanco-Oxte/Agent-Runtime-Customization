@@ -1,0 +1,273 @@
+.dialog-shell {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--surface-panel);
+}
+
+.dialog-content {
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(var(--space-5), 5vw, var(--space-8));
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.dialog-header {
+  margin-bottom: var(--space-5);
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.dialog-header h1 {
+  margin: 0;
+  font-size: clamp(22px, 4vw, 30px);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.preview-banner {
+  margin: 0 0 var(--space-4);
+  padding: 9px var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border-subtle));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-raised));
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.context-card,
+.details-card {
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+.context-card h2,
+.details-card h2 {
+  margin: 0 0 var(--space-3);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.context-summary {
+  white-space: pre-line;
+}
+
+.violation-explanation {
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+}
+
+.violation-explanation strong {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--text-primary);
+}
+
+.failed-probes ul {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.failed-probes li {
+  overflow-wrap: anywhere;
+}
+
+.probe-rule,
+.probe-reason {
+  color: var(--text-secondary);
+}
+
+.details-card dl {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.details-card dl > div {
+  display: grid;
+  grid-template-columns: minmax(74px, 0.3fr) minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.details-card dt {
+  color: var(--text-muted);
+}
+
+.details-card dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.details-card code {
+  color: var(--text-primary);
+}
+
+.message-field {
+  margin-top: var(--space-5);
+}
+
+.field-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.field-heading label {
+  font-weight: 650;
+}
+
+.field-heading span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.message-field textarea {
+  display: block;
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-canvas);
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.message-field textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.action-bar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) clamp(var(--space-5), 5vw, var(--space-8));
+  border-top: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-panel) 94%, transparent);
+  box-shadow: 0 -12px 35px rgb(0 0 0 / 0.12);
+}
+
+.action-bar p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.action-buttons {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--space-3);
+}
+
+.button {
+  min-width: 96px;
+  min-height: 40px;
+  padding: 9px var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-weight: 720;
+  cursor: pointer;
+  transition:
+    transform 100ms ease,
+    background-color 100ms ease,
+    box-shadow 100ms ease;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.2);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.button-allow {
+  background: var(--allow);
+}
+
+.button-allow:hover:not(:disabled) {
+  background: var(--allow-hover);
+}
+
+.button-allow:active:not(:disabled) {
+  background: var(--allow-active);
+}
+
+.button-deny {
+  background: var(--deny);
+}
+
+.button-deny:hover:not(:disabled) {
+  background: var(--deny-hover);
+}
+
+.button-deny:active:not(:disabled) {
+  background: var(--deny-active);
+}
+
+.preview-outcome {
+  position: fixed;
+  right: var(--space-4);
+  bottom: 76px;
+  z-index: 3;
+  padding: 9px var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  box-shadow: var(--shadow);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .details-card dl > div {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+
+  .action-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .action-bar p {
+    text-align: center;
+  }
+
+  .action-buttons,
+  .button {
+    width: 100%;
+  }
+}

@@ -1,0 +1,97 @@
+schema: '1.0'
+
+root:
+  workdir: 'arc'
+  instructions: 'instructions.md'
+
+runtime:
+  decision_timeout_seconds: 90
+
+skills:
+  incident_evidence:
+    description: 'Preserve incident evidence and produce a factual timeline'
+    src: 'skills/incident-evidence'
+
+roles:
+  incident_commander:
+    description: 'Coordinates containment while preserving evidence and authorization boundaries'
+    src: 'roles/incident-commander.md'
+
+guards:
+  lifecycle:
+    dirty_workspace_advisory:
+      trigger:
+        - start
+        - end
+      require:
+        probe:
+          use: 'git status --porcelain'
+          in:
+            - ''
+      on_failure:
+        action: message
+        feedback: |
+          The evidence workspace has uncommitted changes. Preserve them and do
+          not clean, reset, or discard evidence automatically.
+      order: 10
+
+    require_incident_summary:
+      trigger: end
+      require:
+        decide:
+          prompt: |
+            Based only on the current session, has the agent completed a factual
+            incident summary with timeline, evidence references, containment
+            actions, unresolved risks, and no unsupported claims?
+      on_failure:
+        action: deny
+        feedback: |
+          Completion is blocked until the incident summary is complete.
+      order: 90
+
+  tools:
+    preserve_incident_evidence:
+      matches:
+        regex:
+          - '(?i)(rm|del|erase|remove-item)\b.*(logs?|evidence|timeline|pcap)'
+          - '(?i)(clear-history|history\s+-c|clear-eventlog|wevtutil\s+cl)\b'
+      require:
+        probe:
+          use: 'git rev-parse --is-inside-work-tree'
+          in:
+            - allow
+      on_failure:
+        action: deny
+        feedback: |
+          Incident evidence and command history are immutable.
+      order: 5
+
+    authorize_network_containment:
+      matches:
+        regex:
+          - '(?i)(iptables|nft)\b.*(-a|--append|add\s+rule).*\b(drop|reject)\b'
+          - '(?i)(az|aws|gcloud)\b.*(security-group|firewall).*\b(deny|revoke|delete)\b'
+      require:
+        decide:
+          prompt: |
+            Did the user explicitly authorize this exact containment operation,
+            identify the synthetic incident, and state the affected scope?
+      on_failure:
+        action: deny
+        feedback: |
+          Network containment lacks exact incident-scoped authorization.
+      order: 15
+
+    confirm_credential_rotation:
+      matches:
+        regex: '(?i)(rotate|revoke|disable)\b.*\b(credential|token|key|secret)\b'
+      require:
+        probe:
+          use: 'git rev-parse --is-inside-work-tree'
+          in:
+            - allow
+      on_failure:
+        action: ask
+        feedback: |
+          Approve this exact synthetic credential rotation operation?
+      order: 20

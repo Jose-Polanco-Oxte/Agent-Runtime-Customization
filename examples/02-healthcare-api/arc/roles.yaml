@@ -1,0 +1,11 @@
+schema: '1.0'
+
+roles:
+  privacy_officer:
+    description: 'Reviews data movement, minimum-necessary access, and audit retention'
+    src: 'roles/privacy-officer.md'
+
+  database_reviewer:
+    description: |
+      Reviews the exact production migration and rollback path. This role does
+      not grant execution authority.

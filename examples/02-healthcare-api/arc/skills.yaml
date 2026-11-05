@@ -1,0 +1,10 @@
+schema: '1.0'
+
+skills:
+  clinical_data_handling:
+    description: 'Minimize and contain patient-derived data during API work'
+    src: 'skills/clinical-data-handling'
+
+  migration_review:
+    description: 'Review reversible clinical database migrations'
+    src: 'skills/migration-review'

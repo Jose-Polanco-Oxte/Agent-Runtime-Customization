@@ -1,0 +1,45 @@
+schema: '1.0'
+
+rules:
+  policy.never:
+    probe:
+      use:
+        alias: policy.constant
+      in:
+        - allow
+
+  dataset.manifest.present:
+    probe:
+      use:
+        alias: dataset.manifest.state
+      in:
+        - present
+
+  lineage.evidence.present:
+    probe:
+      use:
+        alias: lineage.evidence.state
+      in:
+        - present
+
+  model.review.present:
+    probe:
+      use:
+        alias: model.review.state
+      in:
+        - present
+
+  dependency.lock.synchronized:
+    probe:
+      use:
+        alias: dependency.lock.state
+      in:
+        - synchronized
+
+  model.upload.authorized:
+    all:
+      - rule: model.review.present
+      - decide:
+          prompt: |
+            Did the user explicitly authorize uploading this exact synthetic
+            model version to the named registry after reviewing its model card?

@@ -1,0 +1,272 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to verify and package (e.g., v1.0.0)'
+        required: false
+        default: 'v1.0.0'
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            archive_ext: zip
+            bin_ext: .exe
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-24.04
+            archive_ext: tar.gz
+            bin_ext: ''
+          - target: aarch64-apple-darwin
+            os: macos-14
+            archive_ext: tar.gz
+            bin_ext: ''
+          - target: x86_64-apple-darwin
+            os: macos-14
+            archive_ext: tar.gz
+            bin_ext: ''
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify release tag matches Cargo.toml version
+        id: version_check
+        shell: bash
+        env:
+          RAW_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          TAG="${RAW_TAG#refs/tags/}"
+          if [[ "$TAG" != v* ]]; then
+            echo "Error: release tag '$TAG' must start with 'v' (e.g., v1.0.0)" >&2
+            exit 1
+          fi
+          TAG_VERSION="${TAG#v}"
+          CARGO_VERSION="$(awk -F'"' '/^\[package\]/{in_pkg=1; next} /^\[/{in_pkg=0} in_pkg && /^version[[:space:]]*=/{print $2; exit}' Cargo.toml)"
+          if [[ -z "$CARGO_VERSION" ]]; then
+            echo "Error: failed to read [package].version from Cargo.toml" >&2
+            exit 1
+          fi
+          if [[ "$TAG_VERSION" != "$CARGO_VERSION" ]]; then
+            echo "Error: tag version '$TAG_VERSION' (from '$TAG') does not match Cargo.toml [package].version '$CARGO_VERSION'" >&2
+            exit 1
+          fi
+          echo "Verified release tag $TAG matches Cargo.toml version $CARGO_VERSION"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$CARGO_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Install Linux Tauri system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ui/decision/package-lock.json
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build Decision UI frontend (ui/decision/dist)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm --prefix ui/decision ci --ignore-scripts
+          npm --prefix ui/decision run build
+          test -f ui/decision/dist/index.html
+
+      - name: Build arc-decision-ui-host sidecar
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --manifest-path Cargo.toml --release --locked --target ${{ matrix.target }} -p arc-decision-ui-host --features arc-decision-ui-host/custom-protocol
+
+      - name: Build arc CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --manifest-path Cargo.toml --release --locked --target ${{ matrix.target }} -p arc --bin arc
+
+      - name: Package flat release archive (Windows .zip)
+        if: matrix.archive_ext == 'zip'
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version_check.outputs.version }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $stageDir = Join-Path $PWD 'dist-stage'
+          if (Test-Path -LiteralPath $stageDir) {
+            Remove-Item -LiteralPath $stageDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
+
+          Copy-Item -LiteralPath "target/$env:TARGET/release/arc.exe" -Destination (Join-Path $stageDir 'arc.exe') -Force
+          Copy-Item -LiteralPath "target/$env:TARGET/release/arc-decision-ui-host.exe" -Destination (Join-Path $stageDir 'arc-decision-ui-host.exe') -Force
+          Copy-Item -LiteralPath 'LICENSE-MIT' -Destination (Join-Path $stageDir 'LICENSE-MIT') -Force
+          Copy-Item -LiteralPath 'LICENSE-APACHE' -Destination (Join-Path $stageDir 'LICENSE-APACHE') -Force
+          Copy-Item -LiteralPath 'README.md' -Destination (Join-Path $stageDir 'README.md') -Force
+
+          $archiveName = "arc-v${env:VERSION}-${env:TARGET}.zip"
+          Compress-Archive -Path (Join-Path $stageDir '*') -DestinationPath $archiveName -Force
+
+      - name: Package flat release archive (Unix .tar.gz)
+        if: matrix.archive_ext == 'tar.gz'
+        shell: bash
+        env:
+          VERSION: ${{ steps.version_check.outputs.version }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          rm -rf dist-stage
+          mkdir -p dist-stage
+
+          cp "target/${TARGET}/release/arc" dist-stage/arc
+          cp "target/${TARGET}/release/arc-decision-ui-host" dist-stage/arc-decision-ui-host
+          chmod 0755 dist-stage/arc dist-stage/arc-decision-ui-host
+          cp LICENSE-MIT dist-stage/LICENSE-MIT
+          cp LICENSE-APACHE dist-stage/LICENSE-APACHE
+          cp README.md dist-stage/README.md
+
+          ARCHIVE_NAME="arc-v${VERSION}-${TARGET}.tar.gz"
+          tar -C dist-stage -czf "${ARCHIVE_NAME}" \
+            arc \
+            arc-decision-ui-host \
+            LICENSE-MIT \
+            LICENSE-APACHE \
+            README.md
+
+      - name: Upload release archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-archive-${{ matrix.target }}
+          path: arc-v${{ steps.version_check.outputs.version }}-${{ matrix.target }}.${{ matrix.archive_ext }}
+          if-no-files-found: error
+
+  release:
+    name: Publish Release Assets
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify release tag matches Cargo.toml version
+        id: version_check
+        shell: bash
+        env:
+          RAW_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          TAG="${RAW_TAG#refs/tags/}"
+          if [[ "$TAG" != v* ]]; then
+            echo "Error: release tag '$TAG' must start with 'v'" >&2
+            exit 1
+          fi
+          TAG_VERSION="${TAG#v}"
+          CARGO_VERSION="$(awk -F'"' '/^\[package\]/{in_pkg=1; next} /^\[/{in_pkg=0} in_pkg && /^version[[:space:]]*=/{print $2; exit}' Cargo.toml)"
+          if [[ "$TAG_VERSION" != "$CARGO_VERSION" ]]; then
+            echo "Error: tag version '$TAG_VERSION' does not match Cargo.toml version '$CARGO_VERSION'" >&2
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$CARGO_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Download all platform release archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-archive-*
+          merge-multiple: true
+          path: release-assets
+
+      - name: Generate SHA256SUMS and stage installer scripts
+        shell: bash
+        env:
+          VERSION: ${{ steps.version_check.outputs.version }}
+        run: |
+          set -euo pipefail
+          cp install.ps1 release-assets/install.ps1
+          cp install.sh release-assets/install.sh
+
+          cd release-assets
+          ARCHIVES=(
+            "arc-v${VERSION}-x86_64-pc-windows-msvc.zip"
+            "arc-v${VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+            "arc-v${VERSION}-aarch64-apple-darwin.tar.gz"
+            "arc-v${VERSION}-x86_64-apple-darwin.tar.gz"
+          )
+          for archive in "${ARCHIVES[@]}"; do
+            if [[ ! -f "$archive" ]]; then
+              echo "Error: expected archive '$archive' is missing" >&2
+              exit 1
+            fi
+          done
+
+          sha256sum "${ARCHIVES[@]}" > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Upload checksummed release bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle-v${{ steps.version_check.outputs.version }}
+          path: |
+            release-assets/arc-v${{ steps.version_check.outputs.version }}-*.zip
+            release-assets/arc-v${{ steps.version_check.outputs.version }}-*.tar.gz
+            release-assets/SHA256SUMS
+            release-assets/install.ps1
+            release-assets/install.sh
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version_check.outputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            release-assets/arc-v${{ steps.version_check.outputs.version }}-x86_64-pc-windows-msvc.zip
+            release-assets/arc-v${{ steps.version_check.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
+            release-assets/arc-v${{ steps.version_check.outputs.version }}-aarch64-apple-darwin.tar.gz
+            release-assets/arc-v${{ steps.version_check.outputs.version }}-x86_64-apple-darwin.tar.gz
+            release-assets/SHA256SUMS
+            release-assets/install.ps1
+            release-assets/install.sh
