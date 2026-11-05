@@ -301,7 +301,7 @@ try {
                 $env:ARC_GITHUB_REPO
             }
             else {
-                'Tonybs03/Agent-Runtime-Customization'
+                'Jose-Polanco-Oxte/Agent-Runtime-Customization'
             }
             $BaseUrl = "https://github.com/$repoSlug/releases/download/v$normalizedVersion"
         }

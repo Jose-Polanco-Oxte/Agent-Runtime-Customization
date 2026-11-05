@@ -42,7 +42,7 @@ On Windows (PowerShell):
 
 ```powershell
 # One-liner from GitHub release:
-irm https://github.com/toni-loop/Agent-Runtime-Customization/releases/latest/download/install.ps1 | iex
+irm https://github.com/Jose-Polanco-Oxte/Agent-Runtime-Customization/releases/latest/download/install.ps1 | iex
 
 # Or run locally if downloaded:
 powershell -ExecutionPolicy Bypass -File install.ps1
@@ -52,7 +52,7 @@ On Linux and macOS:
 
 ```bash
 # One-liner from GitHub release:
-curl -fsSL https://github.com/toni-loop/Agent-Runtime-Customization/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/Jose-Polanco-Oxte/Agent-Runtime-Customization/releases/latest/download/install.sh | sh
 
 # Or run locally if downloaded:
 ./install.sh

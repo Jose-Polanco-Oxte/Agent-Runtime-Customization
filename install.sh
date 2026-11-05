@@ -224,7 +224,7 @@ CANONICAL_ARCHIVE_NAME="arc-v${VERSION}-${TARGET}.tar.gz"
 
 # 4. Resolve Base URL
 if [ -z "$BASE_URL" ]; then
-    REPO_SLUG="${ARC_GITHUB_REPO:-Tonybs03/Agent-Runtime-Customization}"
+    REPO_SLUG="${ARC_GITHUB_REPO:-Jose-Polanco-Oxte/Agent-Runtime-Customization}"
     BASE_URL="https://github.com/${REPO_SLUG}/releases/download/v${VERSION}"
 fi
 BASE_URL="${BASE_URL%/}"
