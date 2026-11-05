@@ -761,6 +761,13 @@ fn resolve_local_app_data(app: &AppHandle, trace_enabled: bool) -> Result<PathBu
             ));
         }
         let path = PathBuf::from(override_path);
+        let path = if path.is_absolute() {
+            path
+        } else {
+            std::env::current_dir()
+                .map(|cwd| cwd.join(&path))
+                .unwrap_or(path)
+        };
         if !path.is_absolute() {
             return Err(anyhow::anyhow!(
                 "ARC_DECISION_UI_UDF_ROOT must be an absolute path"
@@ -871,17 +878,21 @@ fn run_tauri_host(session: Arc<DecisionSession>) -> tauri::Result<()> {
                         return;
                     }
                     #[cfg(feature = "webdriver-fixture")]
-                    if let Err(error) = build_unauthorized_window(&builder_app, udf) {
-                        eprintln!("arc embedded decision ui trace: unauthorized_window_build_failed: {error:#}");
-                        let crash_log = std::env::temp_dir().join("arc-webdriver-fixture-crash.log");
-                        let _ = std::fs::write(&crash_log, format!("unauthorized_window_build_failed: {error:#}\n"));
-                        finish_lifecycle_and_exit(
-                            &builder_app,
-                            &builder_session,
-                            UnresolvedReason::TransportFailed,
-                            Some(format!("Arc unauthorized WebDriver fixture could not be created: {error:#}")),
-                            "unauthorized_window_build_failed",
-                        );
+                    {
+                        let unauthorized_udf = udf.join("unauthorized");
+                        let _ = std::fs::create_dir_all(&unauthorized_udf);
+                        if let Err(error) = build_unauthorized_window(&builder_app, unauthorized_udf) {
+                            eprintln!("arc embedded decision ui trace: unauthorized_window_build_failed: {error:#}");
+                            let crash_log = std::env::temp_dir().join("arc-webdriver-fixture-crash.log");
+                            let _ = std::fs::write(&crash_log, format!("unauthorized_window_build_failed: {error:#}\n"));
+                            finish_lifecycle_and_exit(
+                                &builder_app,
+                                &builder_session,
+                                UnresolvedReason::TransportFailed,
+                                Some(format!("Arc unauthorized WebDriver fixture could not be created: {error:#}")),
+                                "unauthorized_window_build_failed",
+                            );
+                        }
                     }
                 });
             if builder.is_err() {

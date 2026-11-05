@@ -133,6 +133,7 @@ if (-not $IsWindows) {
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path
 $uiRoot = Join-Path $repositoryRoot "ui\decision"
 $runId = "webdriver-readiness-acl-$(Get-Date -Format 'yyyyMMddTHHmmssfff')"
+$OutputRoot = [System.IO.Path]::GetFullPath($OutputRoot)
 $runDirectory = Join-Path $OutputRoot $runId
 New-Item -ItemType Directory -Force -Path $runDirectory | Out-Null
 
@@ -198,6 +199,7 @@ if ($buildPassed -and (Test-Path -LiteralPath $Binary -PathType Leaf)) {
     $cleanup = $null
     $terminalEvidencePath = (Join-Path $runDirectory "terminal-attempts.log")
     $traceFilePath = (Join-Path $runDirectory "webdriver-trace.log")
+    $udfPath = (Join-Path $runDirectory "udf")
     $tempEvidenceFile = Join-Path ([System.IO.Path]::GetTempPath()) "arc-webdriver-terminal-evidence-path.txt"
     try {
         [System.IO.File]::WriteAllText($tempEvidenceFile, $terminalEvidencePath)
@@ -205,6 +207,7 @@ if ($buildPassed -and (Test-Path -LiteralPath $Binary -PathType Leaf)) {
         [Environment]::SetEnvironmentVariable("ARC_WEBDRIVER_OUTPUT_DIR", $runDirectory, "Process")
         [Environment]::SetEnvironmentVariable("ARC_DECISION_UI_TRACE", "1", "Process")
         [Environment]::SetEnvironmentVariable("ARC_DECISION_UI_TRACE_FILE", $traceFilePath, "Process")
+        [Environment]::SetEnvironmentVariable("ARC_DECISION_UI_UDF_ROOT", $udfPath, "Process")
     } catch {}
     try {
         $webdriver = Invoke-CapturedCommand `
@@ -218,7 +221,7 @@ if ($buildPassed -and (Test-Path -LiteralPath $Binary -PathType Leaf)) {
                 ARC_WEBDRIVER_OUTPUT_DIR = $runDirectory
                 ARC_WEBDRIVER_TAURI_DRIVER = $tauriDriverCommand
                 ARC_WEBDRIVER_TERMINAL_EVIDENCE = $terminalEvidencePath
-                ARC_DECISION_UI_UDF_ROOT = (Join-Path $runDirectory "udf")
+                ARC_DECISION_UI_UDF_ROOT = $udfPath
                 ARC_DECISION_UI_TRACE = "1"
                 ARC_DECISION_UI_TRACE_FILE = $traceFilePath
             }
@@ -226,6 +229,8 @@ if ($buildPassed -and (Test-Path -LiteralPath $Binary -PathType Leaf)) {
     finally {
         $cleanup = Stop-NewWebDriverProcesses -BaselineProcessIds $webdriverProcessesBefore
         try {
+            [Environment]::SetEnvironmentVariable("ARC_DECISION_UI_UDF_ROOT", $null, "Process")
+            [Environment]::SetEnvironmentVariable("ARC_DECISION_UI_TRACE_FILE", $null, "Process")
             if (Test-Path -LiteralPath $tempEvidenceFile) {
                 Remove-Item -Force -LiteralPath $tempEvidenceFile -ErrorAction SilentlyContinue
             }
