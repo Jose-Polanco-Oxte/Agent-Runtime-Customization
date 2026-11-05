@@ -197,11 +197,14 @@ if ($buildPassed -and (Test-Path -LiteralPath $Binary -PathType Leaf)) {
     $webdriver = $null
     $cleanup = $null
     $terminalEvidencePath = (Join-Path $runDirectory "terminal-attempts.log")
+    $traceFilePath = (Join-Path $runDirectory "webdriver-trace.log")
     $tempEvidenceFile = Join-Path ([System.IO.Path]::GetTempPath()) "arc-webdriver-terminal-evidence-path.txt"
     try {
         [System.IO.File]::WriteAllText($tempEvidenceFile, $terminalEvidencePath)
         [Environment]::SetEnvironmentVariable("ARC_WEBDRIVER_TERMINAL_EVIDENCE", $terminalEvidencePath, "Process")
         [Environment]::SetEnvironmentVariable("ARC_WEBDRIVER_OUTPUT_DIR", $runDirectory, "Process")
+        [Environment]::SetEnvironmentVariable("ARC_DECISION_UI_TRACE", "1", "Process")
+        [Environment]::SetEnvironmentVariable("ARC_DECISION_UI_TRACE_FILE", $traceFilePath, "Process")
     } catch {}
     try {
         $webdriver = Invoke-CapturedCommand `
@@ -216,6 +219,8 @@ if ($buildPassed -and (Test-Path -LiteralPath $Binary -PathType Leaf)) {
                 ARC_WEBDRIVER_TAURI_DRIVER = $tauriDriverCommand
                 ARC_WEBDRIVER_TERMINAL_EVIDENCE = $terminalEvidencePath
                 ARC_DECISION_UI_UDF_ROOT = (Join-Path $runDirectory "udf")
+                ARC_DECISION_UI_TRACE = "1"
+                ARC_DECISION_UI_TRACE_FILE = $traceFilePath
             }
     }
     finally {

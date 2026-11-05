@@ -220,6 +220,12 @@ pub fn trace_enabled() -> bool {
 pub fn trace(enabled: bool, event: &'static str) {
     if enabled {
         eprintln!("arc embedded decision ui trace: {event}");
+        if let Ok(path) = std::env::var("ARC_DECISION_UI_TRACE_FILE") {
+            use std::io::Write;
+            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+                let _ = writeln!(f, "arc embedded decision ui trace: {event}");
+            }
+        }
     }
 }
 

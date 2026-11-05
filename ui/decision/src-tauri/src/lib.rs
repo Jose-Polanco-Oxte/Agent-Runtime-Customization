@@ -857,23 +857,29 @@ fn run_tauri_host(session: Arc<DecisionSession>) -> tauri::Result<()> {
                     trace(builder_session.trace_enabled, "udf_resolved");
                     trace(builder_session.trace_enabled, "udf_strategy=per_session");
                     trace(builder_session.trace_enabled, "window_build_started");
-                    if build_decision_window(&builder_app, &builder_session, udf.clone()).is_err() {
+                    if let Err(error) = build_decision_window(&builder_app, &builder_session, udf.clone()) {
+                        eprintln!("arc embedded decision ui trace: window_build_failed: {error:#}");
+                        let crash_log = std::env::temp_dir().join("arc-webdriver-fixture-crash.log");
+                        let _ = std::fs::write(&crash_log, format!("window_build_failed: {error:#}\n"));
                         finish_lifecycle_and_exit(
                             &builder_app,
                             &builder_session,
                             UnresolvedReason::TransportFailed,
-                            Some("Arc decision WebView could not be created".into()),
+                            Some(format!("Arc decision WebView could not be created: {error:#}")),
                             "window_build_failed",
                         );
                         return;
                     }
                     #[cfg(feature = "webdriver-fixture")]
-                    if build_unauthorized_window(&builder_app, udf).is_err() {
+                    if let Err(error) = build_unauthorized_window(&builder_app, udf) {
+                        eprintln!("arc embedded decision ui trace: unauthorized_window_build_failed: {error:#}");
+                        let crash_log = std::env::temp_dir().join("arc-webdriver-fixture-crash.log");
+                        let _ = std::fs::write(&crash_log, format!("unauthorized_window_build_failed: {error:#}\n"));
                         finish_lifecycle_and_exit(
                             &builder_app,
                             &builder_session,
                             UnresolvedReason::TransportFailed,
-                            Some("Arc unauthorized WebDriver fixture could not be created".into()),
+                            Some(format!("Arc unauthorized WebDriver fixture could not be created: {error:#}")),
                             "unauthorized_window_build_failed",
                         );
                     }
@@ -914,7 +920,14 @@ fn run_tauri_host(session: Arc<DecisionSession>) -> tauri::Result<()> {
         })
         .build(context)?;
 
-    app.run(|_, _| {});
+    app.run(|app_handle, event| {
+        if let tauri::RunEvent::ExitRequested { api, .. } = event {
+            let session = app_handle.state::<Arc<DecisionSession>>();
+            if !session.is_terminal() {
+                api.prevent_exit();
+            }
+        }
+    });
     Ok(())
 }
 
