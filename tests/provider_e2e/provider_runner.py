@@ -13,7 +13,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Mapping, Sequence
 
 from provider_contract import (
@@ -68,7 +68,10 @@ def prepare_provider_environment(
 
     profile_root = prepared.get("USERPROFILE") or prepared.get("HOME")
     if profile_root:
-        prepared["CODEX_HOME"] = str(Path(profile_root) / ".codex")
+        if "\\" in profile_root or (len(profile_root) >= 2 and profile_root[1] == ":"):
+            prepared["CODEX_HOME"] = str(PureWindowsPath(profile_root) / ".codex")
+        else:
+            prepared["CODEX_HOME"] = str(Path(profile_root) / ".codex")
     return prepared
 
 
