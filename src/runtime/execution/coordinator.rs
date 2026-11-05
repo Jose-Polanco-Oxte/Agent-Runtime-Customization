@@ -53,6 +53,10 @@ impl GuardExecutionCoordinator {
         self
     }
 
+    pub fn load_record(&self, key: &GuardExecutionKey) -> Result<Option<GuardExecutionRecord>> {
+        self.store.load(key)
+    }
+
     pub fn coordinate(&self, input: CoordinationInput) -> Result<RuntimeDirective> {
         self.store
             .purge_expired(now_unix_ms() - self.policy.execution_ttl_ms)?;
@@ -694,6 +698,7 @@ impl GuardExecutionCoordinator {
         match evaluation {
             EvaluationSnapshot::Satisfied => {
                 record.state = GuardExecutionState::Satisfied;
+                record.pending_decision = None;
                 record.mark_completed(unix_ms_to_iso8601(now_unix_ms()));
                 directive(
                     record,

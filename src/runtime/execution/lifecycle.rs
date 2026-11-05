@@ -190,8 +190,19 @@ pub fn coordinate_lifecycle_stop(
     }
     let mut directives = Vec::with_capacity(result.report.guard_results.len());
     for guard in &result.report.guard_results {
+        let key = make_key(&guard.guard_id);
+        let existing = coordinator.load_record(&key)?;
         let (snapshot, handling) = match &guard.state {
-            GuardResultState::Satisfied => continue,
+            GuardResultState::Satisfied => {
+                if existing.is_some() {
+                    (
+                        EvaluationSnapshot::Satisfied,
+                        lifecycle_violation_handling(guard.configured_action, terminal),
+                    )
+                } else {
+                    continue;
+                }
+            }
             GuardResultState::Faulted { .. } => (
                 EvaluationSnapshot::Fault {
                     message: PUBLIC_HOOK_FAILURE_REASON.into(),
@@ -207,7 +218,6 @@ pub fn coordinate_lifecycle_stop(
                 lifecycle_violation_handling(guard.configured_action, terminal),
             ),
         };
-        let key = make_key(&guard.guard_id);
         let directive = coordinator.coordinate(CoordinationInput {
             key: key.clone(),
             invocation_id: invocation_id.clone(),

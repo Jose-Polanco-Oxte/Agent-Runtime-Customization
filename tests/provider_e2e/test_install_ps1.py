@@ -76,6 +76,7 @@ def _sha256_hex(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+@unittest.skipUnless(sys.platform == "win32", "install.ps1 tests require Windows")
 class TestInstallPs1(unittest.TestCase):
     """End-to-end offline verification suite for REQ-003 (install.ps1)."""
 

@@ -369,7 +369,8 @@ def run_provider_harness(
             workspace = Path(temporary).resolve()
             state_directory = workspace / ".arc-provider-e2e-state"
             marker = workspace / "provider-e2e-ready.txt"
-            (workspace / "arc.yaml").write_text(
+            manifest_path = workspace / "arc.yaml"
+            manifest_path.write_text(
                 build_arc_manifest(
                     HostFamily.WINDOWS if os.name == "nt" else HostFamily.POSIX
                 ),
@@ -403,7 +404,7 @@ def run_provider_harness(
                     "--os",
                     "host",
                     "--path",
-                    str(workspace),
+                    str(manifest_path),
                 ),
                 safe_display=(
                     f"<arc> build --target {provider.value} --os host --path <workspace>"
