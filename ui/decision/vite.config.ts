@@ -32,7 +32,7 @@ export default defineConfig({
     },
   },
   build: {
-    target: isWindowsTarget ? "chrome105" : "safari13",
+    target: isWindowsTarget ? "chrome105" : "safari15",
     minify: tauriDebug ? false : "esbuild",
     sourcemap: tauriDebug,
   },
