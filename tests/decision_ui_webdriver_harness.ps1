@@ -115,9 +115,17 @@ function Stop-NewWebDriverProcesses {
         }
     }
 
-    $remainingIds = @(
-        Get-WebDriverProcessIds | Where-Object { $BaselineProcessIds -notcontains [int]$_ }
-    )
+    $remainingIds = @()
+    $cleanupWatch = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($cleanupWatch.ElapsedMilliseconds -lt 5000) {
+        $remainingIds = @(
+            Get-WebDriverProcessIds | Where-Object { $BaselineProcessIds -notcontains [int]$_ }
+        )
+        if ($remainingIds.Count -eq 0) {
+            break
+        }
+        Start-Sleep -Milliseconds 250
+    }
     return [pscustomobject]@{
         Passed = $failures.Count -eq 0 -and $remainingIds.Count -eq 0
         StoppedIds = @($stoppedIds)
