@@ -33,7 +33,7 @@
     "@wdio/mocha-framework": "9.31.2",
     "@wdio/spec-reporter": "9.31.2",
     "@wdio/tauri-service": "1.3.0",
-    "@wdio/types": "9.31.2",
+    "@wdio/types": "10.2.0",
     "jsdom": "30.0.1",
     "esbuild": "0.28.2",
     "svelte-check": "4.7.6",
